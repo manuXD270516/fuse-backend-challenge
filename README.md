@@ -52,7 +52,7 @@ npm run test
 ## ⚙️ Environment Variables
 
 ```env
-VENDOR_API_KEY=nSbPbFJe95BFZuf1DwF32UhqZLEVQ5K4wdtJ12e
+VENDOR_API_KEY=nSbPbFJfe95BFZufiDwF32UhqZLEVQ5K4wdtJI2e
 VENDOR_BASE_URL=https://api.challenge.fusefinance.com
 ```
 
