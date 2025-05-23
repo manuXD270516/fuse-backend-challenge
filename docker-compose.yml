@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  fuse-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: dev-run
+    ports:
+      - '3000:3000'
+    environment:
+      - VENDOR_API_KEY=nSbPbFJfe95BFZufiDwF32UhqZLEVQ5K4wdtJI2e
+      - VENDOR_BASE_URL=https://api.challenge.fusefinance.com
+    env_file:
+      - .env

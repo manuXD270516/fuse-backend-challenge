@@ -1,64 +1,73 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
-import { isPriceWithin2Percent } from '../common/utils/price-check.util';
+import { VendorService } from '../vendor/vendor.service';
+import { PortfolioStoreService } from '../portfolio/portfolio-store/portfolio-store.service';
+import { TransactionLogService } from './transaction-log/transaction-log.service';
+import { isPriceWithinPercentage } from '../common/utils/price-check.util';
 
 @Injectable()
 export class TransactionsService {
-  private readonly apiKey: string;
-  private readonly baseUrl: string;
+  constructor(
+    private readonly vendorService: VendorService,
+    private readonly portfolioStore: PortfolioStoreService,
+    private readonly transactionLog: TransactionLogService,
+  ) {}
 
-  // In-memory store: { userId: { symbol: quantity } }
-  private readonly portfolios: Record<string, Record<string, number>> = {};
-  private readonly logs: any[] = [];
-
-  constructor(private config: ConfigService) {
-    this.apiKey = this.config.get('VENDOR_API_KEY');
-    this.baseUrl = this.config.get('VENDOR_BASE_URL');
-  }
-
-  async buyStock(userId: string, symbol: string, price: number, quantity: number) {
+  async buyStock(
+    userId: string,
+    symbol: string,
+    price: number,
+    quantity: number,
+  ) {
     try {
-      const vendorResponse = await axios.get(`${this.baseUrl}/stocks`, {
-        headers: { 'x-api-key': this.apiKey },
-      });
-
-      const stock = vendorResponse.data.data.items.find((item) => item.symbol === symbol);
-      if (!stock) throw new Error('Stock not found');
+      const stock = await this.vendorService.getStockBySymbol(symbol);
+      if (!stock) {
+        return {
+          success: false,
+          message: 'Stock not found',
+        };
+      }
 
       const currentPrice = stock.price;
+      const success = isPriceWithinPercentage(currentPrice, price, 2);
 
-      const success = isPriceWithin2Percent(currentPrice, price);
-
-      this.logs.push({
+      // Log transaction
+      this.transactionLog.log({
         userId,
         symbol,
         requestedPrice: price,
         currentPrice,
         quantity,
         success,
-        timestamp: new Date(),
       });
 
       if (!success) {
-        return { success: false, message: 'Price out of acceptable range (±2%)' };
+        return {
+          success: false,
+          message: 'Price out of acceptable range (±2%)',
+        };
       }
 
       // Update portfolio
-      this.portfolios[userId] ??= {};
-      this.portfolios[userId][symbol] = (this.portfolios[userId][symbol] || 0) + quantity;
+      this.portfolioStore.addToPortfolio(userId, symbol, quantity);
 
-      return { success: true, message: 'Transaction completed' };
+      return {
+        success: true,
+        message: 'Transaction completed',
+      };
     } catch (error) {
-      return { success: false, message: 'Transaction failed', error: error.message };
+      return {
+        success: false,
+        message: 'Transaction failed',
+        error: error.message,
+      };
     }
   }
 
   getPortfolio(userId: string) {
-    return this.portfolios[userId] ?? {};
+    return this.portfolioStore.getPortfolio(userId);
   }
 
   getTransactionLogs() {
-    return this.logs;
+    return this.transactionLog.getLogs();
   }
 }

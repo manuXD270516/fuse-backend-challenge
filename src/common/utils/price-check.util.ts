@@ -1,4 +1,8 @@
-export function isPriceWithin2Percent(current: number, offered: number): boolean {
-  const tolerance = current * 0.02;
-  return Math.abs(current - offered) <= tolerance;
+export function isPriceWithinPercentage(
+  referencePrice: number,
+  offeredPrice: number,
+  tolerancePercent: number = 2,
+): boolean {
+  const tolerance = referencePrice * (tolerancePercent / 100);
+  return Math.abs(referencePrice - offeredPrice) <= tolerance;
 }

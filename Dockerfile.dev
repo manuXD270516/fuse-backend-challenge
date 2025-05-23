@@ -1,0 +1,23 @@
+# Stage 1 - Base
+FROM node:18-alpine AS base 
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Stage 2 - Test
+FROM base AS test
+COPY . .
+RUN npm run test
+
+# Stage 3 - Build
+FROM base AS build
+COPY . .
+RUN npm run build --legacy-peer-deps
+
+# Stage 4 - Production
+FROM node:18-alpine AS dev-run
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY --from=base /app/node_modules ./node_modules
+COPY .env .env
+CMD ["node", "dist/main"]

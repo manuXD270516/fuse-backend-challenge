@@ -1,18 +1,25 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { StocksService } from './stocks.service';
+import { VendorService } from '../vendor/vendor.service';
 
 describe('StocksService', () => {
-  let service: StocksService;
+  let stocksService: StocksService;
+  let vendorService: VendorService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StocksService],
-    }).compile();
+  beforeEach(() => {
+    vendorService = {
+      getStocks: jest.fn().mockResolvedValue({
+        data: { items: [{ symbol: 'AAPL' }], nextToken: null },
+      }),
+    } as any;
 
-    service = module.get<StocksService>(StocksService);
+    stocksService = new StocksService(vendorService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('should delegate getStocks to VendorService', async () => {
+    const result = await stocksService.getStocks();
+    expect(vendorService.getStocks).toHaveBeenCalled();
+    expect(result).toEqual({
+      data: { items: [{ symbol: 'AAPL' }], nextToken: null },
+    });
   });
 });

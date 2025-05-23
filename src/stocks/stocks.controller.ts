@@ -1,5 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { ApiOkResponse } from '@nestjs/swagger';
 import { StocksService } from './stocks.service';
+import { GetStocksResponseDto } from './dto/get-stocks-response.dto';
 
 @Controller('stocks')
 export class StocksController {
@@ -11,16 +13,14 @@ export class StocksController {
    * Returns a list of available stocks from the vendor API
    */
   @Get()
-  async getAllStocks(@Query('nextToken') nextToken?: string) {
-    try {
-      const data = await this.stocksService.getStocks(nextToken);
-      return data;
-    } catch (error) {
-      return {
-        statusCode: error.response?.status || 500,
-        message: 'Failed to fetch stocks',
-        details: error.message,
-      };
-    }
+  @ApiOkResponse({ type: GetStocksResponseDto })
+  async getAllStocks(
+    @Query('nextToken') nextToken?: string,
+  ): Promise<GetStocksResponseDto> {
+    const result = await this.stocksService.getStocks(nextToken);
+    return {
+      items: result.data.items,
+      nextToken: result.data.nextToken,
+    };
   }
 }
